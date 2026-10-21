@@ -11,7 +11,8 @@
       "params": [
         { "name": "search", "type": "string", "description": "Поиск по названию" },
         { "name": "published", "type": "boolean", "description": "Фильтр по статусу публикации" },
-        { "name": "categories", "type": "string", "description": "Фильтр по категории" }
+        { "name": "categories", "type": "string", "description": "Фильтр по категории" },
+        { "name": "recommended", "type": "boolean", "description": "Фильтр по рекомендации"}
       ],
       "example": "https://api.creative.justmc.io/public/creative/worlds/page?search=parkour&published=true"
     },
