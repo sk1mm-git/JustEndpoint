@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API JustMC Creative</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Фоновый логотип -->
+  <div class="bg-logo" aria-hidden="true">
+    <svg viewBox="0 0 150.44 111.72" xmlns="http://www.w3.org/2000/svg">
+      <path fill="none" stroke="#f35454" stroke-miterlimit="10" stroke-width="17.5" d="M64.88 28.62c36.27-13.8 70.32-12.8 76 2.26M9.57 80.84c-5.72-15 19-38.43 55.3-52.22"></path>
+      <circle cx="75.25" cy="55.86" r="55.86" fill="#3a6bf2"></circle>
+      <path fill="#fff" d="m37.63 66.45 8-4.6c1.27 2.25 2.6 3.45 5.7 3.45 4 0 5.24-2.3 5.24-4.77V33.17h9.2v27.35c0 8.86-6.2 13.76-14.5 13.76-6.4 0-11-2.7-13.65-7.83zm75.07 7.02h-9.2V50L93.08 67.14H92L81.62 50v23.47h-9.2v-40.3h9.2l10.94 17.9 10.94-17.9h9.2z"></path>
+      <path fill="none" stroke="#f35454" stroke-miterlimit="10" stroke-width="17.5" d="M140.87 30.74c5.72 15-19 38.57-55.26 52.36S15.24 95.74 9.52 80.7"></path>
+    </svg>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-text">JustMC API</span>
+      </div>
+      <nav id="side-nav"></nav>
+    </aside>
+
+    <div class="content-wrap">
+      <header>
+        <h1 id="page-title">Загрузка…</h1>
+        <p id="disclaimer" class="disclaimer"></p>
+      </header>
+
+      <main id="content"></main>
+
+      <footer>
+        <p>Неофициальная документация.</p>
+      </footer>
+    </div>
+  </div>
+
+  <button id="back-to-top" title="Наверх">↑</button>
+
+  <script src="app.js"></script>
+</body>
+</html>

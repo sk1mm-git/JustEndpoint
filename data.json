@@ -1,0 +1,125 @@
+{
+  "title": "API JustMC Creative",
+  "disclaimer": "Это неофициальная документация. API может измениться в любой момент. Используйте на свой риск.",
+  "sections": [
+    {
+      "title": "Миры — страница",
+      "category": "Миры",
+      "description": "Получить первую страницу миров.",
+      "method": "GET",
+      "url": "https://api.creative.justmc.io/public/creative/worlds/page",
+      "params": [
+        { "name": "search", "type": "string", "description": "Поиск по названию" },
+        { "name": "published", "type": "boolean", "description": "Фильтр по статусу публикации" },
+        { "name": "categories", "type": "string", "description": "Фильтр по категории" }
+      ],
+      "example": "https://api.creative.justmc.io/public/creative/worlds/page?search=parkour&published=true"
+    },
+    {
+      "title": "Мир по ID",
+      "category": "Миры",
+      "description": "Получить информацию о мире по ID, включая ресурспаки и прочее.",
+      "method": "GET",
+      "url": "https://api.creative.justmc.io/public/creative/worlds/get/255",
+      "params": [
+        { "name": "id", "type": "int", "description": "Числовой ID мира (в пути)" }
+      ],
+      "example": "https://api.creative.justmc.io/public/creative/worlds/get/255"
+    },
+    {
+      "title": "Категории миров",
+      "category": "Миры",
+      "description": "Все доступные категории для мира.",
+      "method": "GET",
+      "url": "https://api.creative.justmc.io/public/creative/worlds/categories",
+      "params": [],
+      "example": "https://api.creative.justmc.io/public/creative/worlds/categories"
+    },
+    {
+      "title": "Модули — список",
+      "category": "Модули",
+      "description": "Получить первую страницу модулей.",
+      "method": "GET",
+      "url": "https://api.creative.justmc.io/public/creative/modules",
+      "params": [
+        { "name": "offset", "type": "int", "description": "Смещение" },
+        { "name": "limit", "type": "int", "description": "Количество на странице" },
+        { "name": "category", "type": "string", "description": "Фильтр по категории" },
+        { "name": "author", "type": "string", "description": "Фильтр по автору (UUID)" },
+        { "name": "sortBy", "type": "string", "description": "Поле сортировки" },
+        { "name": "sortOrder", "type": "string", "description": "Направление сортировки" },
+        { "name": "search", "type": "string", "description": "Поиск" }
+      ],
+      "example": "https://api.creative.justmc.io/public/creative/modules?limit=20&sortBy=stars&sortOrder=desc"
+    },
+    {
+      "title": "Модуль по UUID",
+      "category": "Модули",
+      "description": "Получить информацию об одном модуле по его случайному UUID.",
+      "method": "GET",
+      "url": "https://api.creative.justmc.io/public/creative/modules/5522d414-d311-405e-af7f-171de2782414",
+      "params": [
+        { "name": "moduleId", "type": "uuid", "description": "UUID модуля (в пути)" }
+      ],
+      "example": "https://api.creative.justmc.io/public/creative/modules/5522d414-d311-405e-af7f-171de2782414"
+    },
+    {
+      "title": "Код модуля",
+      "category": "Модули",
+      "description": "Получить код модуля в формате JSON. Только для публичных модулей с открытым кодом.",
+      "method": "GET",
+      "url": "https://api.creative.justmc.io/public/creative/modules/5522d414-d311-405e-af7f-171de2782414/code",
+      "params": [
+        { "name": "id", "type": "uuid", "description": "UUID модуля (в пути)" }
+      ],
+      "example": "https://api.creative.justmc.io/public/creative/modules/5522d414-d311-405e-af7f-171de2782414/code"
+    },
+    {
+      "title": "Пользователь по нику",
+      "category": "Пользователи",
+      "description": "Получить информацию об игроке по нику.",
+      "method": "GET",
+      "url": "https://website.justmc.io/user/_Sk1Mix_",
+      "params": [
+        { "name": "name", "type": "string", "description": "Ник игрока (в пути)" }
+      ],
+      "example": "https://website.justmc.io/user/_Sk1Mix_"
+    },
+    {
+      "title": "Общий онлайн",
+      "category": "Онлайн",
+      "description": "Суммарный онлайн всех режимов.",
+      "method": "GET",
+      "url": "https://website.justmc.io/online",
+      "params": [],
+      "example": "https://website.justmc.io/online"
+    },
+    {
+      "title": "Онлайн по режимам",
+      "category": "Онлайн",
+      "description": "Онлайн режимов в JSON-формате, отдельно по каждому.",
+      "method": "GET",
+      "url": "https://website.justmc.io/online/modes",
+      "params": [],
+      "example": "https://website.justmc.io/online/modes"
+    },
+    {
+      "title": "Типы приватности модулей",
+      "category": "Другое",
+      "description": " Публичный — есть в API и в каталоге.\nВ каталоге — нет в API, но есть в каталоге.\n Скрытый — нет в каталоге, но можно установить.\n Приватный — может установить только создатель.",
+      "method": "INFO",
+      "url": "",
+      "params": [],
+      "example": null
+    },
+    {
+      "title": "Типы приватности кода",
+      "category": "Другое",
+      "description": " Открытый — есть в API и видно в коде.\nЗакрытый — нет в API и не видно в коде.",
+      "method": "INFO",
+      "url": "",
+      "params": [],
+      "example": null
+    }
+  ]
+}
