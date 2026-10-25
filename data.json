@@ -129,7 +129,9 @@
       "method": "INFO",
       "url": "Ща будет.. Чуть чуть подождите",
       "params": [],
-      "example": null
+      "example": "fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url))
+  .then(res => res.json())
+  .then(data => console.log(data));"
     }
   ]
 }
