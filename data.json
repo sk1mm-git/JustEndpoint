@@ -125,11 +125,12 @@
     {
       "title": "Обход CORS",
       "category": "Код",
-      "description": "При получении данных с апи если блокировка CORS, что бы её обойти нужен свой прокси-сервер. Так что я предоставлю код",
+      "description": "При получении данных с API, если срабатывает блокировка CORS, чтобы её обойти, нужен прокси-сервер. Вот пример использования публичного прокси:",
       "method": "INFO",
-      "url": "Ща будет.. Чуть чуть подождите",
+      "url": "",
       "params": [],
-      "example": "ц"
+      "isCode": true,
+      "example": "const url = 'https://api.creative.justmc.io/public/creative/worlds/get/255';\nconst proxy = 'https://api.allorigins.win/raw?url=';\n\nfetch(proxy + encodeURIComponent(url))\n  .then(res => res.json())\n  .then(data => console.log(data))\n  .catch(err => console.error(err));"
     }
   ]
 }
