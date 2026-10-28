@@ -132,5 +132,15 @@
       "isCode": true,
       "example": "const url = 'https://api.creative.justmc.io/public/creative/worlds/get/255';\nconst proxy = 'https://api.allorigins.win/raw?url=';\n\nfetch(proxy + encodeURIComponent(url))\n  .then(res => res.json())\n  .then(data => console.log(data))\n  .catch(err => console.error(err));"
     }
+    {
+      "title": "Фан-апи",
+      "category": "Код",
+      "description": "Есть фан-апи от RealDosed на получения данных от блока кода, точнее это репозиторий на гитхаб",
+      "method": "API",
+      "url": "https://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/actions.json\nhttps://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/events.json\nhttps://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/values.json"
+",
+      "params": [],
+      "isCode": false,
+      "example": null
   ]
 }
