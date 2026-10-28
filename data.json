@@ -135,9 +135,9 @@
     {
       "title": "Фан-апи",
       "category": "Код",
-      "description": "Есть фан-апи от RealDosed на получения данных от блока кода, точнее это репозиторий на гитхаб",
+      "description": "Есть фан-апи от RealDosed на получения данных от блока кода, точнее это репозиторий на гитхаб\nhttps://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/actions.json\nhttps://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/events.json\nhttps://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/values.json",
       "method": "API",
-      "url": "https://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/actions.json\nhttps://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/events.json\nhttps://raw.githubusercontent.com/realDosed/justmc-assets/refs/heads/master/data/values.json",
+      "url": "",
       "params": [],
       "isCode": false,
       "example": null
