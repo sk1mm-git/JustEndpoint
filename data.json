@@ -131,7 +131,7 @@
       "params": [],
       "isCode": true,
       "example": "const url = 'https://api.creative.justmc.io/public/creative/worlds/get/255';\nconst proxy = 'https://api.allorigins.win/raw?url=';\n\nfetch(proxy + encodeURIComponent(url))\n  .then(res => res.json())\n  .then(data => console.log(data))\n  .catch(err => console.error(err));"
-    }
+    },
     {
       "title": "Фан-апи",
       "category": "Код",
