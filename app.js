@@ -26,7 +26,8 @@ function beep({ freq = 520, type = 'sine', dur = 0.06, gain = 0.04, slide = 0 } 
 const sfx = {
   hover: () => beep({ freq: 720, type: 'sine', dur: 0.045, gain: 0.018 }),
   click: () => beep({ freq: 420, type: 'triangle', dur: 0.08, gain: 0.035, slide: 180 }),
-  nav: () => beep({ freq: 600, type: 'sine', dur: 0.06, gain: 0.025, slide: 120 })
+  nav: () => beep({ freq: 600, type: 'sine', dur: 0.06, gain: 0.025, slide: 120 }),
+  type: () => beep({ freq: 800, type: 'sine', dur: 0.02, gain: 0.01 })
 };
 ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => ensureAudio(), { once: true }));
 
@@ -40,6 +41,39 @@ backToTopBtn.addEventListener('click', () => {
   sfx.click();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
+
+/* ---------- Логика поиска ---------- */
+const searchInput = document.getElementById('search-input');
+let allEndpoints = []; 
+
+searchInput.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  if (query.length % 2 === 0) sfx.type();
+
+  allEndpoints.forEach(item => {
+    const el = item.element;
+    
+    // Если поиск пуст — показываем всё
+    if (!query) {
+      el.classList.remove('hidden');
+      return;
+    }
+
+    // Проверяем совпадения в заголовке, описании и URL
+    const textToSearch = (
+      (item.title || '') + ' ' + 
+      (item.desc || '') + ' ' + 
+      (item.url || '')
+    ).toLowerCase();
+
+    if (textToSearch.includes(query)) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+});
+
 
 /* ---------- Рендер ---------- */
 async function init() {
@@ -62,26 +96,43 @@ async function init() {
   titleEl.textContent = data.title || 'API JustMC';
   if (data.disclaimer) discEl.textContent = data.disclaimer;
 
-  const order = ['Миры', 'Модули', 'Пользователи', 'Онлайн', 'Другое'];
-  const groups = new Map();
-  order.forEach(k => groups.set(k, []));
-
   const items = data.sections || [];
+
+  // 1. Динамически собираем все уникальные категории из JSON
+  const uniqueCategories = [];
+  items.forEach(item => {
+    const cat = item.category || 'Другое';
+    if (!uniqueCategories.includes(cat)) {
+      uniqueCategories.push(cat);
+    }
+  });
+
+  // 2. Сортируем категории (чтобы "Другое" было в конце, если оно есть)
+  uniqueCategories.sort((a, b) => {
+    if (a === 'Другое') return 1;
+    if (b === 'Другое') return -1;
+    return 0;
+  });
+
+  // Группируем эндпоинты по категориям
+  const groups = new Map();
+  uniqueCategories.forEach(cat => groups.set(cat, []));
+
   items.forEach((item, i) => {
-    const cat = order.includes(item.category) ? item.category : 'Другое';
+    const cat = item.category || 'Другое';
     groups.get(cat).push({ item, index: i });
   });
 
   const contentById = new Map();
 
   // Боковая навигация
-  order.forEach(cat => {
+  uniqueCategories.forEach(cat => {
     const list = groups.get(cat);
     if (!list.length) return;
 
     const groupWrap = document.createElement('div');
-    // ВАЖНО: сразу добавляем closed, чтобы всё было закрыто по умолчанию
-    groupWrap.className = 'nav-group closed'; 
+    // По умолчанию все закрыты
+    groupWrap.className = 'nav-group closed';
 
     const title = document.createElement('div');
     title.className = 'nav-group-title';
@@ -122,7 +173,6 @@ async function init() {
     const box = document.createElement('div');
     box.className = 'endpoint';
     box.id = id;
-    // Устанавливаем атрибут метода для полосы слева
     box.setAttribute('data-method', (item.method || 'GET').toUpperCase());
 
     const h2 = document.createElement('h2');
@@ -139,33 +189,32 @@ async function init() {
     line.appendChild(method);
 
     if (item.url) {
-      const url = document.createElement('span');
-      url.className = 'url';
-      url.textContent = item.url;
-      line.appendChild(url);
+      const urlEl = document.createElement('span');
+      urlEl.className = 'url';
+      urlEl.textContent = item.url;
+      line.appendChild(urlEl);
     }
     box.appendChild(line);
 
     if (item.description) {
-      const p = document.createElement('div');
-      p.className = 'desc';
-      
+      const descEl = document.createElement('div');
+      descEl.className = 'desc';
       const lines = item.description.split('\n').filter(l => l.trim() !== '');
       if (lines.length > 1) {
         const ul = document.createElement('ul');
         lines.forEach(text => {
           const li = document.createElement('li');
-          // Так как треугольник теперь рисует CSS, очищаем текст от старых символов, если они остались
           li.textContent = text.replace('⏵', '').trim(); 
           ul.appendChild(li);
         });
-        p.appendChild(ul);
+        descEl.appendChild(ul);
       } else {
-        p.textContent = item.description.replace('⏵', '').trim();
+        descEl.textContent = item.description.replace('⏵', '').trim();
       }
-      box.appendChild(p);
+      box.appendChild(descEl);
     }
 
+    // Параметры
     if (item.params && item.params.length) {
       const table = document.createElement('table');
       table.className = 'params-table';
@@ -183,15 +232,24 @@ async function init() {
       box.appendChild(table);
     }
 
+    // Пример
     if (item.example) {
       const label = document.createElement('div');
       label.className = 'example-label';
-      label.textContent = 'Пример:';
+      label.textContent = item.isCode ? 'Пример кода:' : 'Пример:';
       box.appendChild(label);
       const pre = document.createElement('pre');
-      pre.textContent = item.example;
+      pre.textContent = item.example.trim();
       box.appendChild(pre);
     }
+
+    // Сохраняем в массив для поиска
+    allEndpoints.push({
+      element: box,
+      title: item.title || '',
+      desc: item.description || '',
+      url: item.url || ''
+    });
 
     box.addEventListener('mouseenter', sfx.hover);
     box.addEventListener('click', () => sfx.click());
@@ -199,7 +257,7 @@ async function init() {
     contentEl.appendChild(box);
   });
 
-  // Подсветка активного пункта
+  // Подсветка активного пункта в сайдбаре
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
