@@ -48,8 +48,31 @@ let allEndpoints = [];
 let currentSearchQuery = '';
 let currentMethodFilter = 'ALL';
 
+/* ---------- Утилита для копирования и уведомлений ---------- */
+function showToast(message) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `✅ ${message}`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    toast.addEventListener('animationend', () => toast.remove());
+  }, 2000);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    sfx.success();
+    showToast('Скопировано в буфер обмена!');
+  });
+}
+
 /* ---------- Функции фильтрации ---------- */
 function applyFilters() {
+  // 1. Фильтруем карточки
   allEndpoints.forEach(item => {
     const el = item.element;
     const searchMatch = !currentSearchQuery || (
@@ -62,9 +85,31 @@ function applyFilters() {
 
     if (searchMatch && methodMatch) {
       el.classList.remove('hidden');
+      el.setAttribute('data-visible', 'true');
     } else {
       el.classList.add('hidden');
+      el.setAttribute('data-visible', 'false');
     }
+  });
+
+  // 2. Умный сайдбар (скрываем пустые категории)
+  document.querySelectorAll('.nav-group').forEach(group => {
+    const links = group.querySelectorAll('.nav-link');
+    let hasVisible = false;
+    
+    links.forEach(link => {
+      const targetId = link.getAttribute('href').substring(1);
+      const targetEl = document.getElementById(targetId);
+      
+      if (targetEl && targetEl.getAttribute('data-visible') === 'true') {
+        link.style.display = 'flex';
+        hasVisible = true;
+      } else {
+        link.style.display = 'none';
+      }
+    });
+
+    group.style.display = hasVisible ? 'block' : 'none';
   });
 }
 
@@ -88,15 +133,25 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('mouseenter', sfx.hover);
 });
 
+/* ---------- Функция живого обновления URL ---------- */
+function updateLiveUrl(item, box, inputsMap) {
+  const previewEl = box.querySelector('.url-preview');
+  if (!previewEl) return;
 
-/* ---------- Утилита для копирования ---------- */
-function copyToClipboard(text, btnElement) {
-  navigator.clipboard.writeText(text).then(() => {
-    sfx.success();
-    const originalHtml = btnElement.innerHTML;
-    btnElement.innerHTML = '✅';
-    setTimeout(() => { btnElement.innerHTML = originalHtml; }, 2000);
+  let targetUrl = item.url;
+
+  Object.keys(inputsMap).forEach(key => {
+    const val = inputsMap[key].value.trim();
+    if (val) {
+      targetUrl = targetUrl.replace(`{${key}}`, `<span class="url-param">${encodeURIComponent(val)}</span>`);
+      targetUrl = targetUrl.replace(`/${key}`, `/<span class="url-param">${encodeURIComponent(val)}</span>`);
+    } else {
+      targetUrl = targetUrl.replace(`{${key}}`, `<span class="url-placeholder">{${key}}</span>`);
+      targetUrl = targetUrl.replace(`/${key}`, `/<span class="url-placeholder">${key}</span>`);
+    }
   });
+
+  previewEl.innerHTML = targetUrl;
 }
 
 /* ---------- Рендер ---------- */
@@ -122,16 +177,18 @@ async function init() {
   if (data.disclaimer) discEl.textContent = data.disclaimer;
 
   // --- Проверка статуса API (Ping) ---
-  fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://website.justmc.io/online'))
-    .then(r => r.json())
-    .then(() => {
-      statusDot.className = 'status-dot online';
-      statusDot.title = 'API работает';
-    })
-    .catch(() => {
-      statusDot.className = 'status-dot offline';
-      statusDot.title = 'API не отвечает';
-    });
+  if (statusDot) {
+    fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://website.justmc.io/online'))
+      .then(r => r.json())
+      .then(() => {
+        statusDot.className = 'status-dot online';
+        statusDot.title = 'API работает';
+      })
+      .catch(() => {
+        statusDot.className = 'status-dot offline';
+        statusDot.title = 'API не отвечает';
+      });
+  }
 
   const items = data.sections || [];
   const uniqueCategories = [];
@@ -182,7 +239,15 @@ async function init() {
       link.textContent = item.title || 'Без названия';
       
       link.addEventListener('mouseenter', sfx.hover);
-      link.addEventListener('click', () => sfx.nav());
+      link.addEventListener('click', () => {
+        sfx.nav();
+        // Сброс поиска при переходе
+        if (searchInput.value !== '') {
+          searchInput.value = '';
+          currentSearchQuery = '';
+          applyFilters(); 
+        }
+      });
       
       itemsWrap.appendChild(link);
       contentById.set(id, link);
@@ -204,7 +269,7 @@ async function init() {
     h2.textContent = item.title || '';
     box.appendChild(h2);
 
-    // Строка метода и URL
+    // Строка метода и URL (с живым превью)
     const line = document.createElement('div');
     line.className = 'line';
 
@@ -215,22 +280,22 @@ async function init() {
     line.appendChild(method);
 
     if (item.url) {
-      const urlWrap = document.createElement('div');
-      urlWrap.className = 'url-wrap';
+      const urlPreviewWrap = document.createElement('div');
+      urlPreviewWrap.className = 'url-preview-wrap';
       
-      const urlEl = document.createElement('span');
-      urlEl.className = 'url';
-      urlEl.textContent = item.url;
-      
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'copy-btn';
-      copyBtn.innerHTML = '📋';
-      copyBtn.title = 'Копировать URL';
-      copyBtn.addEventListener('click', () => copyToClipboard(item.url, copyBtn));
+      const urlPreview = document.createElement('code');
+      urlPreview.className = 'url-preview';
+      urlPreview.textContent = item.url;
 
-      urlWrap.appendChild(urlEl);
-      urlWrap.appendChild(copyBtn);
-      line.appendChild(urlWrap);
+      const copyLiveBtn = document.createElement('button');
+      copyLiveBtn.className = 'copy-btn';
+      copyLiveBtn.innerHTML = '📋';
+      copyLiveBtn.title = 'Копировать готовый URL';
+      copyLiveBtn.addEventListener('click', () => copyToClipboard(urlPreview.textContent));
+
+      urlPreviewWrap.appendChild(urlPreview);
+      urlPreviewWrap.appendChild(copyLiveBtn);
+      line.appendChild(urlPreviewWrap);
     }
     box.appendChild(line);
 
@@ -274,7 +339,10 @@ async function init() {
           const input = document.createElement('input');
           input.className = 'param-input';
           input.placeholder = 'Введите...';
+          
+          input.addEventListener('input', () => updateLiveUrl(item, box, inputsMap));
           input.addEventListener('keydown', (e) => e.stopPropagation());
+          
           tdInput.appendChild(input);
           inputsMap[p.name] = input;
         }
@@ -282,6 +350,11 @@ async function init() {
       });
       table.appendChild(tbody);
       box.appendChild(table);
+    }
+
+    // Инициализация живого URL (если есть параметры в пути)
+    if (item.canRun && !item.isCode) {
+      updateLiveUrl(item, box, inputsMap);
     }
 
     // Блок Выполнения (Playground)
@@ -305,7 +378,6 @@ async function init() {
         
         let targetUrl = item.url;
         
-        // Подстановка параметров
         Object.keys(inputsMap).forEach(key => {
           const val = inputsMap[key].value.trim();
           if (val) {
@@ -347,7 +419,7 @@ async function init() {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'copy-btn text-copy';
       copyBtn.innerHTML = '📋 Скопировать';
-      copyBtn.addEventListener('click', () => copyToClipboard(item.example, copyBtn));
+      copyBtn.addEventListener('click', () => copyToClipboard(item.example));
       headerWrap.appendChild(copyBtn);
 
       box.appendChild(headerWrap);
@@ -371,7 +443,7 @@ async function init() {
     contentEl.appendChild(box);
   });
 
-  // Подсветка в сайдбаре
+  // Подсветка в сайдбаре при прокрутке
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
