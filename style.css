@@ -515,3 +515,14 @@ footer {
   h1 { font-size: 2rem; }
   #back-to-top { bottom: 1.5rem; right: 1.5rem; width: 40px; height: 40px; }
 }
+/* Скрытие карточек при поиске */
+.endpoint.hidden {
+  display: none !important;
+}
+
+/* Плавная работа поиска */
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
