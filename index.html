@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Фоновый логотип -->
+  <!-- Фоновый логотип JustMC -->
   <div class="bg-logo" aria-hidden="true">
     <svg viewBox="0 0 150.44 111.72" xmlns="http://www.w3.org/2000/svg">
       <path fill="none" stroke="#f35454" stroke-miterlimit="10" stroke-width="17.5" d="M64.88 28.62c36.27-13.8 70.32-12.8 76 2.26M9.57 80.84c-5.72-15 19-38.43 55.3-52.22"></path>
@@ -21,6 +21,7 @@
   </div>
 
   <div class="layout">
+    <!-- Сайдбар с категориями -->
     <aside class="sidebar">
       <div class="brand">
         <span class="brand-dot"></span>
@@ -29,10 +30,19 @@
       <nav id="side-nav"></nav>
     </aside>
 
+    <!-- Основной контент -->
     <div class="content-wrap">
-      <header>
-        <h1 id="page-title">Загрузка…</h1>
-        <p id="disclaimer" class="disclaimer"></p>
+      <header class="top-header">
+        <div class="header-left">
+          <h1 id="page-title">Загрузка…</h1>
+          <p id="disclaimer" class="disclaimer"></p>
+        </div>
+        <div class="header-right">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="search-input" placeholder="Поиск по API..." autocomplete="off">
+          </div>
+        </div>
       </header>
 
       <main id="content"></main>
@@ -43,6 +53,7 @@
     </div>
   </div>
 
+  <!-- Кнопка "Наверх" -->
   <button id="back-to-top" title="Наверх">↑</button>
 
   <script src="app.js"></script>
