@@ -1,4 +1,4 @@
-/* ---------- Web Audio: мягкие звуки ---------- */
+/* ---------- Аудио и Хоткеи ---------- */
 let audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) {
@@ -6,122 +6,78 @@ function ensureAudio() {
     if (AC) audioCtx = new AC();
   }
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
 }
-function beep({ freq = 520, type = 'sine', dur = 0.06, gain = 0.04, slide = 0 } = {}) {
-  const ctx = ensureAudio();
-  if (!ctx) return;
-  const osc = ctx.createOscillator();
-  const g = ctx.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, ctx.currentTime);
-  if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), ctx.currentTime + dur);
+function beep({ freq = 520, type = 'sine', dur = 0.06, gain = 0.04 } = {}) {
+  const ctx = ensureAudio(); if (!ctx) return;
+  const osc = ctx.createOscillator(); const g = ctx.createGain();
+  osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
   g.gain.setValueAtTime(0.0001, ctx.currentTime);
   g.gain.exponentialRampToValueAtTime(gain, ctx.currentTime + 0.008);
   g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
-  osc.connect(g).connect(ctx.destination);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + dur + 0.02);
+  osc.connect(g).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + dur + 0.02);
 }
 const sfx = {
-  hover: () => beep({ freq: 720, type: 'sine', dur: 0.045, gain: 0.018 }),
-  click: () => beep({ freq: 420, type: 'triangle', dur: 0.08, gain: 0.035, slide: 180 }),
-  nav: () => beep({ freq: 600, type: 'sine', dur: 0.06, gain: 0.025, slide: 120 }),
-  type: () => beep({ freq: 800, type: 'sine', dur: 0.02, gain: 0.01 }),
-  success: () => { beep({ freq: 600, dur: 0.1, gain: 0.03 }); setTimeout(() => beep({ freq: 800, dur: 0.15, gain: 0.03 }), 100); }
+  hover: () => beep({ freq: 720, gain: 0.015 }),
+  click: () => beep({ freq: 400, type: 'triangle', gain: 0.03 }),
+  success: () => { beep({ freq: 600 }); setTimeout(() => beep({ freq: 800 }), 100); }
 };
-['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => ensureAudio(), { once: true }));
 
-/* ---------- Кнопка Наверх ---------- */
-const backToTopBtn = document.getElementById('back-to-top');
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 300) backToTopBtn.classList.add('show');
-  else backToTopBtn.classList.remove('show');
-});
-backToTopBtn.addEventListener('click', () => {
-  sfx.click();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+// Хоткеи
+const searchInput = document.getElementById('search-input');
+window.addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement !== searchInput) {
+    e.preventDefault();
+    searchInput.focus();
+  }
+  if (e.key === 'Escape' && document.activeElement === searchInput) {
+    searchInput.blur();
+    searchInput.value = '';
+    applyFilters();
+  }
 });
 
-/* ---------- Глобальные переменные для поиска и фильтров ---------- */
+/* ---------- Утилиты ---------- */
+function showToast(msg) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `✅ ${msg}`;
+  t.style.cssText = 'background:var(--panel); padding:0.8rem 1.5rem; border-radius:12px; border:1px solid var(--blue); color:#fff; margin-top:10px; animation: fadeUp 0.3s ease; font-weight:500;';
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => { sfx.success(); showToast('Скопировано!'); });
+}
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ---------- Фильтры и Поиск ---------- */
 let allEndpoints = [];
 let currentSearchQuery = '';
 let currentMethodFilter = 'ALL';
 
-/* ---------- Утилита для копирования и уведомлений ---------- */
-function showToast(message) {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = `✅ ${message}`;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.add('fade-out');
-    toast.addEventListener('animationend', () => toast.remove());
-  }, 2000);
-}
-
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    sfx.success();
-    showToast('Скопировано в буфер обмена!');
-  });
-}
-
-/* ---------- Функции фильтрации ---------- */
 function applyFilters() {
-  // 1. Фильтруем карточки
   allEndpoints.forEach(item => {
-    const el = item.element;
-    const searchMatch = !currentSearchQuery || (
-      (item.title || '') + ' ' + 
-      (item.desc || '') + ' ' + 
-      (item.url || '')
-    ).toLowerCase().includes(currentSearchQuery);
-    
+    const searchMatch = !currentSearchQuery || (item.title + ' ' + item.desc + ' ' + item.url).toLowerCase().includes(currentSearchQuery);
     const methodMatch = currentMethodFilter === 'ALL' || item.method === currentMethodFilter;
-
-    if (searchMatch && methodMatch) {
-      el.classList.remove('hidden');
-      el.setAttribute('data-visible', 'true');
-    } else {
-      el.classList.add('hidden');
-      el.setAttribute('data-visible', 'false');
-    }
+    if (searchMatch && methodMatch) { item.element.style.display = 'block'; item.element.setAttribute('data-visible', 'true'); }
+    else { item.element.style.display = 'none'; item.element.setAttribute('data-visible', 'false'); }
   });
 
-  // 2. Умный сайдбар (скрываем пустые категории)
   document.querySelectorAll('.nav-group').forEach(group => {
-    const links = group.querySelectorAll('.nav-link');
     let hasVisible = false;
-    
-    links.forEach(link => {
-      const targetId = link.getAttribute('href').substring(1);
-      const targetEl = document.getElementById(targetId);
-      
-      if (targetEl && targetEl.getAttribute('data-visible') === 'true') {
-        link.style.display = 'flex';
-        hasVisible = true;
-      } else {
-        link.style.display = 'none';
-      }
+    group.querySelectorAll('.nav-link').forEach(link => {
+      const target = document.getElementById(link.getAttribute('href').substring(1));
+      if (target && target.getAttribute('data-visible') === 'true') { link.style.display = 'block'; hasVisible = true; }
+      else { link.style.display = 'none'; }
     });
-
     group.style.display = hasVisible ? 'block' : 'none';
   });
 }
 
-// Поиск
-const searchInput = document.getElementById('search-input');
-searchInput.addEventListener('input', (e) => {
-  currentSearchQuery = e.target.value.toLowerCase().trim();
-  if (currentSearchQuery.length % 2 === 0) sfx.type();
-  applyFilters();
-});
-
-// Фильтры по методам
+searchInput.addEventListener('input', (e) => { currentSearchQuery = e.target.value.toLowerCase().trim(); applyFilters(); });
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     sfx.click();
@@ -130,338 +86,145 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     currentMethodFilter = btn.getAttribute('data-filter');
     applyFilters();
   });
-  btn.addEventListener('mouseenter', sfx.hover);
 });
 
-/* ---------- Функция живого обновления URL ---------- */
+/* ---------- Живой URL ---------- */
 function updateLiveUrl(item, box, inputsMap) {
   const previewEl = box.querySelector('.url-preview');
   if (!previewEl) return;
-
   let targetUrl = item.url;
-
   Object.keys(inputsMap).forEach(key => {
     const val = inputsMap[key].value.trim();
-    if (val) {
-      targetUrl = targetUrl.replace(`{${key}}`, `<span class="url-param">${encodeURIComponent(val)}</span>`);
-      targetUrl = targetUrl.replace(`/${key}`, `/<span class="url-param">${encodeURIComponent(val)}</span>`);
-    } else {
-      targetUrl = targetUrl.replace(`{${key}}`, `<span class="url-placeholder">{${key}}</span>`);
-      targetUrl = targetUrl.replace(`/${key}`, `/<span class="url-placeholder">${key}</span>`);
-    }
+    if (val) targetUrl = targetUrl.replace(`{${key}}`, `<span class="url-param">${encodeURIComponent(val)}</span>`);
+    else targetUrl = targetUrl.replace(`{${key}}`, `<span class="url-placeholder">{${key}}</span>`);
   });
-
   previewEl.innerHTML = targetUrl;
 }
 
-/* ---------- Рендер ---------- */
+/* ---------- Главный рендер ---------- */
 async function init() {
-  const titleEl = document.getElementById('page-title');
-  const discEl = document.getElementById('disclaimer');
-  const navEl = document.getElementById('side-nav');
   const contentEl = document.getElementById('content');
-  const statusDot = document.getElementById('api-status');
+  const navEl = document.getElementById('side-nav');
+  
+  // Проверка API
+  fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://website.justmc.io/online'))
+    .then(() => document.getElementById('api-status').className = 'status-dot online')
+    .catch(() => document.getElementById('api-status').className = 'status-dot offline');
 
   let data;
-  try {
-    const res = await fetch('data.json', { cache: 'no-cache' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    data = await res.json();
-  } catch (e) {
-    contentEl.innerHTML = '<p style="color:#ff6b6b">Не удалось загрузить data.json: ' + e.message + '</p>';
-    return;
-  }
+  try { data = await (await fetch('data.json')).json(); } 
+  catch (e) { contentEl.innerHTML = `<p style="color:red">Ошибка data.json: ${e.message}</p>`; return; }
 
-  document.title = data.title || 'API JustMC';
-  titleEl.textContent = data.title || 'API JustMC';
-  if (data.disclaimer) discEl.textContent = data.disclaimer;
-
-  // --- Проверка статуса API (Ping) ---
-  if (statusDot) {
-    fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://website.justmc.io/online'))
-      .then(r => r.json())
-      .then(() => {
-        statusDot.className = 'status-dot online';
-        statusDot.title = 'API работает';
-      })
-      .catch(() => {
-        statusDot.className = 'status-dot offline';
-        statusDot.title = 'API не отвечает';
-      });
-  }
-
+  document.title = data.title;
   const items = data.sections || [];
-  const uniqueCategories = [];
-  items.forEach(item => {
-    const cat = item.category || 'Другое';
-    if (!uniqueCategories.includes(cat)) uniqueCategories.push(cat);
-  });
-  uniqueCategories.sort((a, b) => a === 'Другое' ? 1 : b === 'Другое' ? -1 : 0);
-
-  const groups = new Map();
-  uniqueCategories.forEach(cat => groups.set(cat, []));
+  
+  // Группировка
+  const groups = {};
   items.forEach((item, i) => {
     const cat = item.category || 'Другое';
-    groups.get(cat).push({ item, index: i });
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push({ item, index: i });
   });
 
-  const contentById = new Map();
-
-  // --- Сайдбар ---
-  uniqueCategories.forEach(cat => {
-    const list = groups.get(cat);
-    if (!list.length) return;
-
+  // Сайдбар
+  Object.keys(groups).forEach(cat => {
     const groupWrap = document.createElement('div');
     groupWrap.className = 'nav-group closed';
-
-    const title = document.createElement('div');
-    title.className = 'nav-group-title';
-    title.innerHTML = `<span>${cat}</span><span class="arrow">▼</span>`;
+    groupWrap.innerHTML = `<div class="nav-group-title"><span>${cat}</span><span class="arrow">▼</span></div><div class="nav-group-items"></div>`;
     
-    const itemsWrap = document.createElement('div');
-    itemsWrap.className = 'nav-group-items';
-
-    title.addEventListener('click', () => {
-      sfx.click();
-      groupWrap.classList.toggle('closed');
+    groupWrap.querySelector('.nav-group-title').addEventListener('click', (e) => {
+      e.currentTarget.parentElement.classList.toggle('closed'); sfx.click();
     });
-    title.addEventListener('mouseenter', sfx.hover);
 
-    groupWrap.appendChild(title);
-    groupWrap.appendChild(itemsWrap);
-
-    list.forEach(({ item, index }) => {
-      const id = 'endpoint-' + index;
+    const itemsWrap = groupWrap.querySelector('.nav-group-items');
+    groups[cat].forEach(({ item, index }) => {
       const link = document.createElement('a');
-      link.className = 'nav-link';
-      link.href = '#' + id;
-      link.textContent = item.title || 'Без названия';
-      
-      link.addEventListener('mouseenter', sfx.hover);
+      link.className = 'nav-link'; link.href = `#endpoint-${index}`; link.textContent = item.title;
       link.addEventListener('click', () => {
-        sfx.nav();
-        // Сброс поиска при переходе
-        if (searchInput.value !== '') {
-          searchInput.value = '';
-          currentSearchQuery = '';
-          applyFilters(); 
-        }
+        sfx.click(); searchInput.value = ''; currentSearchQuery = ''; applyFilters();
       });
-      
       itemsWrap.appendChild(link);
-      contentById.set(id, link);
     });
-
     navEl.appendChild(groupWrap);
   });
 
-  // --- Карточки ---
+  // Карточки
   items.forEach((item, i) => {
-    const id = 'endpoint-' + i;
+    const id = `endpoint-${i}`;
     const box = document.createElement('div');
-    box.className = 'endpoint';
-    box.id = id;
-    box.setAttribute('data-method', (item.method || 'GET').toUpperCase());
-
-    // Заголовок
-    const h2 = document.createElement('h2');
-    h2.textContent = item.title || '';
-    box.appendChild(h2);
-
-    // Строка метода и URL (с живым превью)
-    const line = document.createElement('div');
-    line.className = 'line';
-
-    const method = document.createElement('span');
-    method.className = 'method';
-    method.textContent = item.method || 'GET';
-    method.setAttribute('data-m', (item.method || 'GET').toUpperCase());
-    line.appendChild(method);
-
+    box.className = 'endpoint'; box.id = id; box.setAttribute('data-method', item.method);
+    
+    // Шапка карточки
+    box.innerHTML = `<h2>${item.title}</h2>
+      <div class="line">
+        <span class="method" data-m="${item.method}">${item.method}</span>
+        ${item.url ? `<div class="url-preview-wrap"><code class="url-preview">${item.url}</code><button class="copy-btn" title="Копировать">📋</button></div>` : ''}
+      </div>`;
+    
+    // Кнопка копирования URL
     if (item.url) {
-      const urlPreviewWrap = document.createElement('div');
-      urlPreviewWrap.className = 'url-preview-wrap';
-      
-      const urlPreview = document.createElement('code');
-      urlPreview.className = 'url-preview';
-      urlPreview.textContent = item.url;
-
-      const copyLiveBtn = document.createElement('button');
-      copyLiveBtn.className = 'copy-btn';
-      copyLiveBtn.innerHTML = '📋';
-      copyLiveBtn.title = 'Копировать готовый URL';
-      copyLiveBtn.addEventListener('click', () => copyToClipboard(urlPreview.textContent));
-
-      urlPreviewWrap.appendChild(urlPreview);
-      urlPreviewWrap.appendChild(copyLiveBtn);
-      line.appendChild(urlPreviewWrap);
+      box.querySelector('.copy-btn').addEventListener('click', () => copyToClipboard(item.url));
     }
-    box.appendChild(line);
 
     // Описание
     if (item.description) {
-      const descEl = document.createElement('div');
-      descEl.className = 'desc';
-      const lines = item.description.split('\n').filter(l => l.trim() !== '');
-      if (lines.length > 1) {
-        const ul = document.createElement('ul');
-        lines.forEach(text => {
-          const li = document.createElement('li');
-          li.textContent = text.replace('⏵', '').trim(); 
-          ul.appendChild(li);
-        });
-        descEl.appendChild(ul);
-      } else {
-        descEl.textContent = item.description.replace('⏵', '').trim();
-      }
-      box.appendChild(descEl);
+      const d = document.createElement('div'); d.className = 'desc';
+      d.innerHTML = item.description.split('\n').filter(l=>l).map(l => `<li>${l.replace('⏵','').trim()}</li>`).join('');
+      if (d.innerHTML.includes('<li>')) d.innerHTML = `<ul>${d.innerHTML}</ul>`;
+      box.appendChild(d);
     }
 
     // Параметры и Playground
-    const inputsMap = {}; 
+    const inputsMap = {};
     if (item.params && item.params.length) {
-      const table = document.createElement('table');
-      table.className = 'params-table';
-      table.innerHTML = '<thead><tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Значение</th></tr></thead>';
-      const tbody = document.createElement('tbody');
-      
+      const table = document.createElement('table'); table.className = 'params-table';
+      table.innerHTML = '<tr><th>Параметр</th><th>Описание</th><th>Значение</th></tr>';
       item.params.forEach(p => {
         const tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td><code>' + escapeHtml(p.name) + '</code></td>' +
-          '<td>' + escapeHtml(p.type || '') + '</td>' +
-          '<td>' + escapeHtml(p.description || '') + '</td>' +
-          '<td></td>';
-          
-        if (item.canRun && !item.isCode) {
-          const tdInput = tr.lastElementChild;
-          const input = document.createElement('input');
-          input.className = 'param-input';
-          input.placeholder = 'Введите...';
-          
-          input.addEventListener('input', () => updateLiveUrl(item, box, inputsMap));
-          input.addEventListener('keydown', (e) => e.stopPropagation());
-          
-          tdInput.appendChild(input);
-          inputsMap[p.name] = input;
-        }
-        tbody.appendChild(tr);
+        tr.innerHTML = `<td><code>${p.name}</code><br><small style="color:var(--muted)">${p.type||''}</small></td>
+                        <td>${p.description||''}</td>
+                        <td>${item.canRun ? `<input class="param-input" data-name="${p.name}" placeholder="...">` : '-'}</td>`;
+        table.appendChild(tr);
       });
-      table.appendChild(tbody);
       box.appendChild(table);
-    }
 
-    // Инициализация живого URL (если есть параметры в пути)
-    if (item.canRun && !item.isCode) {
-      updateLiveUrl(item, box, inputsMap);
-    }
-
-    // Блок Выполнения (Playground)
-    if (item.canRun && item.method === 'GET' && !item.isCode) {
-      const responseBlock = document.createElement('div');
-      responseBlock.className = 'response-block';
-      const preResponse = document.createElement('pre');
-      responseBlock.appendChild(preResponse);
-
-      const runBtn = document.createElement('button');
-      runBtn.className = 'btn-run';
-      runBtn.innerHTML = '▶ Выполнить';
-      
-      runBtn.addEventListener('click', async () => {
-        sfx.click();
-        runBtn.disabled = true;
-        runBtn.innerHTML = '<span class="spinner"></span> Загрузка...';
-        responseBlock.classList.add('show');
-        responseBlock.classList.remove('error');
-        preResponse.textContent = '...';
-        
-        let targetUrl = item.url;
-        
-        Object.keys(inputsMap).forEach(key => {
-          const val = inputsMap[key].value.trim();
-          if (val) {
-            targetUrl = targetUrl.replace(`{${key}}`, encodeURIComponent(val));
-            targetUrl = targetUrl.replace(`/${key}`, `/${encodeURIComponent(val)}`); 
-          }
-        });
-        
-        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
-
-        try {
-          const res = await fetch(proxyUrl);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          preResponse.textContent = JSON.stringify(data, null, 2);
-        } catch (err) {
-          responseBlock.classList.add('error');
-          preResponse.textContent = 'Ошибка запроса:\n' + err.message;
-        } finally {
-          runBtn.disabled = false;
-          runBtn.innerHTML = '▶ Выполнить';
-        }
+      // Биндим инпуты
+      box.querySelectorAll('.param-input').forEach(inp => {
+        const name = inp.getAttribute('data-name');
+        inputsMap[name] = inp;
+        inp.addEventListener('input', () => updateLiveUrl(item, box, inputsMap));
       });
-      
-      box.appendChild(runBtn);
-      box.appendChild(responseBlock);
+      if (item.canRun) updateLiveUrl(item, box, inputsMap);
     }
 
-    // Пример кода
-    if (item.example) {
-      const headerWrap = document.createElement('div');
-      headerWrap.className = 'example-header';
+    // Кнопка Выполнить
+    if (item.canRun && item.method === 'GET') {
+      const btn = document.createElement('button'); btn.className = 'btn-run'; btn.textContent = '▶ Выполнить запрос';
+      const resBlock = document.createElement('div'); resBlock.className = 'response-block'; resBlock.innerHTML = '<pre>...</pre>';
       
-      const label = document.createElement('div');
-      label.className = 'example-label';
-      label.textContent = item.isCode ? 'Пример кода:' : 'Пример:';
-      headerWrap.appendChild(label);
-
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'copy-btn text-copy';
-      copyBtn.innerHTML = '📋 Скопировать';
-      copyBtn.addEventListener('click', () => copyToClipboard(item.example));
-      headerWrap.appendChild(copyBtn);
-
-      box.appendChild(headerWrap);
-
-      const pre = document.createElement('pre');
-      pre.textContent = item.example.trim();
-      box.appendChild(pre);
+      btn.addEventListener('click', async () => {
+        btn.disabled = true; btn.textContent = 'Загрузка...'; resBlock.classList.add('show');
+        let u = item.url;
+        Object.keys(inputsMap).forEach(k => { if(inputsMap[k].value) u = u.replace(`{${k}}`, inputsMap[k].value); });
+        
+        try {
+          const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(u));
+          const json = await res.json();
+          resBlock.querySelector('pre').textContent = JSON.stringify(json, null, 2);
+        } catch(e) { resBlock.querySelector('pre').textContent = 'Ошибка: ' + e.message; }
+        btn.disabled = false; btn.textContent = '▶ Выполнить запрос';
+      });
+      box.appendChild(btn); box.appendChild(resBlock);
     }
 
-    allEndpoints.push({
-      element: box,
-      title: item.title || '',
-      desc: item.description || '',
-      url: item.url || '',
-      method: (item.method || 'GET').toUpperCase()
-    });
-
-    box.addEventListener('mouseenter', sfx.hover);
-    box.addEventListener('click', () => sfx.click());
-
+    allEndpoints.push({ element: box, title: item.title, desc: item.description || '', url: item.url || '', method: item.method });
     contentEl.appendChild(box);
   });
 
-  // Подсветка в сайдбаре при прокрутке
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        contentById.forEach(el => el.classList.remove('active'));
-        const link = contentById.get(entry.target.id);
-        if (link) link.classList.add('active');
-      }
-    });
-  }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
-
-  contentById.forEach((_, id) => {
-    const el = document.getElementById(id);
-    if (el) observer.observe(el);
-  });
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // Кнопка вверх
+  const backBtn = document.getElementById('back-to-top');
+  window.addEventListener('scroll', () => backBtn.classList.toggle('show', window.scrollY > 300));
+  backBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
 init();
