@@ -1,11 +1,8 @@
-/* ---------- Аудио и Хоткеи ---------- */
+/* ---------- Аудио ---------- */
 let audioCtx = null;
 function ensureAudio() {
-  if (!audioCtx) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (AC) audioCtx = new AC();
-  }
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 function beep({ freq = 520, type = 'sine', dur = 0.06, gain = 0.04 } = {}) {
   const ctx = ensureAudio(); if (!ctx) return;
@@ -21,20 +18,7 @@ const sfx = {
   click: () => beep({ freq: 400, type: 'triangle', gain: 0.03 }),
   success: () => { beep({ freq: 600 }); setTimeout(() => beep({ freq: 800 }), 100); }
 };
-
-// Хоткеи
-const searchInput = document.getElementById('search-input');
-window.addEventListener('keydown', (e) => {
-  if (e.key === '/' && document.activeElement !== searchInput) {
-    e.preventDefault();
-    searchInput.focus();
-  }
-  if (e.key === 'Escape' && document.activeElement === searchInput) {
-    searchInput.blur();
-    searchInput.value = '';
-    applyFilters();
-  }
-});
+['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => ensureAudio(), { once: true }));
 
 /* ---------- Утилиты ---------- */
 function showToast(msg) {
@@ -42,18 +26,15 @@ function showToast(msg) {
   const t = document.createElement('div');
   t.className = 'toast';
   t.innerHTML = `✅ ${msg}`;
-  t.style.cssText = 'background:var(--panel); padding:0.8rem 1.5rem; border-radius:12px; border:1px solid var(--blue); color:#fff; margin-top:10px; animation: fadeUp 0.3s ease; font-weight:500;';
   c.appendChild(t);
   setTimeout(() => t.remove(), 2000);
 }
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => { sfx.success(); showToast('Скопировано!'); });
 }
-function escapeHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+function escapeHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-/* ---------- Фильтры и Поиск ---------- */
+/* ---------- Поиск и фильтры ---------- */
 let allEndpoints = [];
 let currentSearchQuery = '';
 let currentMethodFilter = 'ALL';
@@ -77,6 +58,7 @@ function applyFilters() {
   });
 }
 
+const searchInput = document.getElementById('search-input');
 searchInput.addEventListener('input', (e) => { currentSearchQuery = e.target.value.toLowerCase().trim(); applyFilters(); });
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -115,11 +97,12 @@ async function init() {
   try { data = await (await fetch('data.json')).json(); } 
   catch (e) { contentEl.innerHTML = `<p style="color:red">Ошибка data.json: ${e.message}</p>`; return; }
 
-  document.title = data.title;
-  const items = data.sections || [];
+  document.getElementById('page-title').textContent = data.title;
+  document.getElementById('disclaimer').textContent = data.disclaimer;
   
-  // Группировка
+  const items = data.sections || [];
   const groups = {};
+  
   items.forEach((item, i) => {
     const cat = item.category || 'Другое';
     if (!groups[cat]) groups[cat] = [];
@@ -132,8 +115,8 @@ async function init() {
     groupWrap.className = 'nav-group closed';
     groupWrap.innerHTML = `<div class="nav-group-title"><span>${cat}</span><span class="arrow">▼</span></div><div class="nav-group-items"></div>`;
     
-    groupWrap.querySelector('.nav-group-title').addEventListener('click', (e) => {
-      e.currentTarget.parentElement.classList.toggle('closed'); sfx.click();
+    groupWrap.querySelector('.nav-group-title').addEventListener('click', () => {
+      groupWrap.classList.toggle('closed'); sfx.click();
     });
 
     const itemsWrap = groupWrap.querySelector('.nav-group-items');
@@ -154,19 +137,16 @@ async function init() {
     const box = document.createElement('div');
     box.className = 'endpoint'; box.id = id; box.setAttribute('data-method', item.method);
     
-    // Шапка карточки
     box.innerHTML = `<h2>${item.title}</h2>
       <div class="line">
         <span class="method" data-m="${item.method}">${item.method}</span>
         ${item.url ? `<div class="url-preview-wrap"><code class="url-preview">${item.url}</code><button class="copy-btn" title="Копировать">📋</button></div>` : ''}
       </div>`;
     
-    // Кнопка копирования URL
     if (item.url) {
       box.querySelector('.copy-btn').addEventListener('click', () => copyToClipboard(item.url));
     }
 
-    // Описание
     if (item.description) {
       const d = document.createElement('div'); d.className = 'desc';
       d.innerHTML = item.description.split('\n').filter(l=>l).map(l => `<li>${l.replace('⏵','').trim()}</li>`).join('');
@@ -174,7 +154,6 @@ async function init() {
       box.appendChild(d);
     }
 
-    // Параметры и Playground
     const inputsMap = {};
     if (item.params && item.params.length) {
       const table = document.createElement('table'); table.className = 'params-table';
@@ -188,7 +167,6 @@ async function init() {
       });
       box.appendChild(table);
 
-      // Биндим инпуты
       box.querySelectorAll('.param-input').forEach(inp => {
         const name = inp.getAttribute('data-name');
         inputsMap[name] = inp;
@@ -197,7 +175,6 @@ async function init() {
       if (item.canRun) updateLiveUrl(item, box, inputsMap);
     }
 
-    // Кнопка Выполнить
     if (item.canRun && item.method === 'GET') {
       const btn = document.createElement('button'); btn.className = 'btn-run'; btn.textContent = '▶ Выполнить запрос';
       const resBlock = document.createElement('div'); resBlock.className = 'response-block'; resBlock.innerHTML = '<pre>...</pre>';
@@ -221,7 +198,6 @@ async function init() {
     contentEl.appendChild(box);
   });
 
-  // Кнопка вверх
   const backBtn = document.getElementById('back-to-top');
   window.addEventListener('scroll', () => backBtn.classList.toggle('show', window.scrollY > 300));
   backBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
