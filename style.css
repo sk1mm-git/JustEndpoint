@@ -287,4 +287,35 @@ footer {
   .sidebar { position: static; width: 100%; height: auto; padding: 1rem; }
   .content-wrap { max-width: 100%; }
 }
+/* --- Кастомный скроллбар для длинных URL --- */
+.url-preview::-webkit-scrollbar {
+  height: 6px; /* Тонкий скроллбар */
+}
 
+.url-preview::-webkit-scrollbar-track {
+  background: transparent; /* Прозрачный фон дорожки */
+}
+
+.url-preview::-webkit-scrollbar-thumb {
+  background: rgba(79, 140, 255, 0.3); /* Полупрозрачный синий */
+  border-radius: 10px;
+}
+
+.url-preview::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 140, 255, 0.6); /* Ярче при наведении */
+}
+
+.url-preview::-webkit-scrollbar-button {
+  display: none; /* Убираем уродливые стрелочки по краям */
+}
+
+/* Для Firefox */
+.url-preview {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(79, 140, 255, 0.3) transparent;
+}
+
+/* Добавим небольшой внутренний отступ снизу, чтобы текст не прилипал к скроллбару */
+.url-preview {
+  padding-bottom: 4px;
+}
